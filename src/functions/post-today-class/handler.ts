@@ -2,7 +2,6 @@ import "dotenv/config";
 
 import type { ValidatedEventAPIGatewayProxyEvent } from "@libs/api-gateway";
 import { formatJSONResponse } from "@libs/api-gateway";
-import { middyfy } from "@libs/lambda";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
@@ -74,7 +73,11 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
 
     console.log("clicking login button...");
 
-    await delay(3000);
+    await delay(2000);
+
+    await page.waitForFunction(
+      () => !document.querySelector("#loading-screen")
+    );
 
     await page.click("#btnConfirmar");
 
@@ -85,11 +88,15 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
       { waitUntil: "networkidle2" }
     );
 
+    await delay(1000);
+
+    await page.waitForFunction(
+      () => !document.querySelector("#loading-screen")
+    );
+
     await delay(2000);
 
     await page.click('*[data-name="agenda"]');
-
-    await delay(1500);
 
     const todayClassRomm = await page.evaluate(() => {
       const items: string[] = [];
@@ -107,6 +114,8 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
     );
 
     console.log("Screenshot calendar");
+
+    console.log({ todayClassRomm, period });
 
     await browser.close();
 
@@ -144,4 +153,4 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const main = middyfy(postTodayClass);
+export const main = postTodayClass;

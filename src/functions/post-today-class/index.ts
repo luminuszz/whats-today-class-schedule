@@ -7,11 +7,6 @@ export default {
   events: [
     {
       schedule: "cron(0 16 ? * MON-FRI *)",
-
-      http: {
-        method: "get",
-        path: "post-today-class",
-      },
     },
   ],
 };
