@@ -6,6 +6,7 @@ import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
 import { Kafka } from "kafkajs";
+import * as process from "process";
 
 const createKafkaConnection = () =>
   new Kafka({
@@ -132,6 +133,7 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
               item.replaceAll("\n", " ").replaceAll("\t", "")
             ),
             period,
+            matricula: process.env.PORTAL_USER_LOGIN,
           }),
         },
       ],
