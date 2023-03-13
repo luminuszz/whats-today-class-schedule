@@ -2,11 +2,21 @@ import "dotenv/config";
 
 import type { ValidatedEventAPIGatewayProxyEvent } from "@libs/api-gateway";
 import { formatJSONResponse } from "@libs/api-gateway";
-import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 
 import { Kafka } from "kafkajs";
 import * as process from "process";
+
+type ClassRoom = {
+  classrooms: string[] | undefined[];
+  period?: string;
+};
+
+const isValidData = (data: ClassRoom) =>
+  data.classrooms?.length > 0 &&
+  data.classrooms.every((item) => item?.length > 10) &&
+  !!data.period;
 
 const createKafkaConnection = () =>
   new Kafka({
@@ -99,7 +109,7 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
 
     await page.click('*[data-name="agenda"]');
 
-    const todayClassRomm = await page.evaluate(() => {
+    const todayClassRoom = await page.evaluate(() => {
       const items: string[] = [];
 
       document.querySelectorAll(".k-today").forEach((item: any) => {
@@ -116,9 +126,11 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
 
     console.log("Screenshot calendar");
 
-    console.log({ todayClassRomm, period });
-
     await browser.close();
+
+    if (!isValidData({ classrooms: todayClassRoom, period })) {
+      throw new Error("Invalid data from calendar");
+    }
 
     const topic = createKafkaConnection();
 
@@ -129,7 +141,7 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
       messages: [
         {
           value: JSON.stringify({
-            classoroms: todayClassRomm.map((item) =>
+            classroom: todayClassRoom.map((item) =>
               item.replaceAll("\n", " ").replaceAll("\t", "")
             ),
             period,
@@ -142,7 +154,7 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
     await topic.disconnect();
 
     return formatJSONResponse({
-      classoroms: todayClassRomm.map((item) =>
+      classoroms: todayClassRoom.map((item) =>
         item.replaceAll("\n", " ").replaceAll("\t", "")
       ),
       status: 200,

@@ -9,7 +9,11 @@ const serverlessConfiguration: AWS = {
   service: "whats-today-class-schedule",
   useDotenv: true,
   frameworkVersion: "3",
-  plugins: ["serverless-esbuild", "serverless-offline"],
+  plugins: [
+    "serverless-esbuild",
+    "serverless-offline",
+    "serverless-plugin-lambda-dead-letter",
+  ],
   provider: {
     name: "aws",
     runtime: "nodejs16.x",

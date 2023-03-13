@@ -1817,7 +1817,7 @@ bl@^4.0.3, bl@^4.1.0:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-bluebird@^3.7.2:
+bluebird@^3.4.7, bluebird@^3.7.2:
   version "3.7.2"
   resolved "https://registry.npmjs.org/bluebird/-/bluebird-3.7.2.tgz"
   integrity sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==
@@ -5211,6 +5211,13 @@ serverless-plugin-chrome@^1.0.0-55.3:
     "@serverless-chrome/lambda" "1.0.0-55"
     fs-p "2.0.0"
     globby "6.1.0"
+
+serverless-plugin-lambda-dead-letter@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/serverless-plugin-lambda-dead-letter/-/serverless-plugin-lambda-dead-letter-1.2.1.tgz#cdd7bcbb6632636832b012a89f9d6aa1ef571e27"
+  integrity sha512-Q4n0J1+vZjqDxSksBbA/8gk2SOQjU57JvM2euzq16iMfw6y0fxd7Nj2KS0gs7kXe7tetAkQUJkSmoXF5AtP7gw==
+  dependencies:
+    bluebird "^3.4.7"
 
 serverless@^3.0.0:
   version "3.28.0"
