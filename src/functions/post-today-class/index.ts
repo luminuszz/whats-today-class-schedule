@@ -6,8 +6,7 @@ export default {
   layers: ["arn:aws:lambda:us-east-1:764866452798:layer:chrome-aws-lambda:31"],
 
   deadLetter: {
-    targetArn:
-      "arn:aws:sqs:us-east-1:777116645379:PostTodayClassDeadLetterQueue",
+    sqs: "PostTodayClassDeadLetterQueue",
   },
 
   events: [

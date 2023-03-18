@@ -21,7 +21,18 @@ const isValidData = (data: ClassRoom) =>
 const createKafkaConnection = () =>
   new Kafka({
     clientId: "whats-today-class-schedule-aws-lambda",
-    brokers: [process.env.KAFKA_CONEECT_URL],
+    brokers: [process.env.KAFKA_CONNECT_URL],
+    ssl: true,
+    sasl: {
+      username: process.env.KAFKA_USERNAME,
+      password: process.env.KAFKA_PASSWORD,
+      mechanism: "plain",
+    },
+    retry: {
+      retries: 5,
+      multiplier: 2,
+      maxRetryTime: 10000,
+    },
   }).producer();
 
 function delay(time) {
@@ -163,8 +174,9 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
   } catch (e) {
     console.error(e);
 
-    return formatJSONResponse({ message: e.message, status: 400 });
+    throw e;
   }
 };
 
 export const main = postTodayClass;
+
