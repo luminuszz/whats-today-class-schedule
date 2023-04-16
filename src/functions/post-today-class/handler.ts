@@ -1,22 +1,12 @@
 import "dotenv/config";
 
-import type { ValidatedEventAPIGatewayProxyEvent } from "@libs/api-gateway";
-import { formatJSONResponse } from "@libs/api-gateway";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
+import { formatJSONResponse } from "@libs/api-gateway";
+import { EventBridgeHandler } from "aws-lambda";
+import * as cheerio from "cheerio";
 import { Kafka } from "kafkajs";
-import * as process from "process";
-
-type ClassRoom = {
-  classrooms: string[] | undefined[];
-  period?: string;
-};
-
-const isValidData = (data: ClassRoom) =>
-  data.classrooms?.length > 0 &&
-  data.classrooms.every((item) => item?.length > 10) &&
-  !!data.period;
 
 const createKafkaConnection = () =>
   new Kafka({
@@ -62,9 +52,7 @@ const getBrowser = async () => {
   });
 };
 
-export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
-  any
-> = async () => {
+export const postTodayClass: EventBridgeHandler<any, any, any> = async () => {
   try {
     const browser = await getBrowser();
 
@@ -116,32 +104,21 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
       () => !document.querySelector("#loading-screen")
     );
 
-    await delay(2000);
+    await page.waitForSelector('*[data-name="agenda"]');
+
+    await delay(1000);
 
     await page.click('*[data-name="agenda"]');
 
-    const todayClassRoom = await page.evaluate(() => {
-      const items: string[] = [];
+    const html = await page.evaluate(() => document.body.innerHTML);
 
-      document.querySelectorAll(".k-today").forEach((item: any) => {
-        items.push(item.innerText);
-      });
+    const $ = cheerio.load(html);
 
-      return items;
-    });
-
-    const period = await page.$eval(
-      '*[data-bind="text: formattedShortDate"]',
-      (element: any) => element.innerText
-    );
-
-    console.log("Screenshot calendar");
+    const classes = $(".k-task.ng-scope")
+      .map((_, element) => element.attribs["title"])
+      .get();
 
     await browser.close();
-
-    if (!isValidData({ classrooms: todayClassRoom, period })) {
-      throw new Error("Invalid data from calendar");
-    }
 
     const topic = createKafkaConnection();
 
@@ -152,10 +129,9 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
       messages: [
         {
           value: JSON.stringify({
-            classroom: todayClassRoom.map((item) =>
-              item.replaceAll("\n", " ").replaceAll("\t", "")
-            ),
-            period,
+            firstClass: classes[0],
+            secondClass: classes[1],
+            period: new Date().toLocaleDateString("pt-BR"),
             matricula: process.env.PORTAL_USER_LOGIN,
           }),
         },
@@ -165,11 +141,8 @@ export const postTodayClass: ValidatedEventAPIGatewayProxyEvent<
     await topic.disconnect();
 
     return formatJSONResponse({
-      classoroms: todayClassRoom.map((item) =>
-        item.replaceAll("\n", " ").replaceAll("\t", "")
-      ),
-      status: 200,
-      period,
+      firstClass: classes[0],
+      secondClass: classes[1],
     });
   } catch (e) {
     console.error(e);
