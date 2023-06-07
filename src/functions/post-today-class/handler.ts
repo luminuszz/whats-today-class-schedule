@@ -131,8 +131,9 @@ export const postTodayClass: EventBridgeHandler<any, any, any> = async () => {
         firstClass: classes[0],
         secondClass: classes[1],
         period: period.toLocaleString("pt-BR"),
-        matricula: process.env.PORTAL_USER_LOGIN,
         sent: false,
+        matricula: process.env.PORTAL_USER_LOGIN,
+        recipient_id: process.env.RECIPIENT_ID,
       })
     );
 
