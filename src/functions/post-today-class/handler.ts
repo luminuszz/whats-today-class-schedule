@@ -8,12 +8,23 @@ import { EventBridgeHandler } from "aws-lambda";
 import * as cheerio from "cheerio";
 import { Redis } from "ioredis";
 
-const createProvider = () =>
-  new Redis({
+const createProvider = async () => {
+  const redisInstance = new Redis({
     host: process.env.REDIS_HOST,
     password: process.env.REDIS_PASSWORD,
     port: Number(process.env.REDIS_PORT),
+    lazyConnect: false,
   });
+
+  const needToCreateANewConnection =
+    redisInstance.status !== "ready" && redisInstance.status !== "connecting";
+
+  if (needToCreateANewConnection) {
+    await redisInstance.connect();
+  }
+
+  return redisInstance;
+};
 
 function delay(time: number) {
   return new Promise(function (resolve) {
@@ -84,7 +95,7 @@ export const postTodayClass: EventBridgeHandler<any, any, any> = async () => {
     await delay(2000);
 
     await page.goto(
-      "https://cyborg.ucsal.br/FrameHTML/web/app/edu/PortalEducacional/#/calendario",
+      "http://novoportal.ucsal.br/FrameHTML/web/app/edu/PortalEducacional/#/calendario",
       { waitUntil: "networkidle2" }
     );
 
@@ -110,20 +121,22 @@ export const postTodayClass: EventBridgeHandler<any, any, any> = async () => {
 
     await browser.close();
 
-    const topic = createProvider();
+    const topic = await createProvider();
 
-    await topic.connect();
+    const period = new Date();
 
     await topic.set(
-      "classes-topics",
+      `topics:notification-class:${period.getTime()}`,
       JSON.stringify({
         firstClass: classes[0],
         secondClass: classes[1],
-        period: new Date().toLocaleDateString("pt-BR"),
+        period: period.toLocaleString("pt-BR"),
         matricula: process.env.PORTAL_USER_LOGIN,
         sent: false,
       })
     );
+
+    topic.disconnect();
 
     return formatJSONResponse({
       firstClass: classes[0],
