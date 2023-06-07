@@ -125,8 +125,8 @@ export const postTodayClass: EventBridgeHandler<any, any, any> = async () => {
 
     const period = new Date();
 
-    await topic.set(
-      `topics:notification-class:${period.getTime()}`,
+    await topic.publish(
+      `topics:notification-class`,
       JSON.stringify({
         firstClass: classes[0],
         secondClass: classes[1],
