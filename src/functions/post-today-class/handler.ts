@@ -6,26 +6,16 @@ import puppeteer from "puppeteer-core";
 import { formatJSONResponse } from "@libs/api-gateway";
 import { EventBridgeHandler } from "aws-lambda";
 import * as cheerio from "cheerio";
-import { Kafka } from "kafkajs";
+import { Redis } from "ioredis";
 
-const createKafkaConnection = () =>
-  new Kafka({
-    clientId: "whats-today-class-schedule-aws-lambda",
-    brokers: [process.env.KAFKA_CONNECT_URL],
-    ssl: true,
-    sasl: {
-      username: process.env.KAFKA_USERNAME,
-      password: process.env.KAFKA_PASSWORD,
-      mechanism: "plain",
-    },
-    retry: {
-      retries: 5,
-      multiplier: 2,
-      maxRetryTime: 10000,
-    },
-  }).producer();
+const createProvider = () =>
+  new Redis({
+    host: process.env.REDIS_HOST,
+    password: process.env.REDIS_PASSWORD,
+    port: Number(process.env.REDIS_PORT),
+  });
 
-function delay(time) {
+function delay(time: number) {
   return new Promise(function (resolve) {
     setTimeout(resolve, time);
   });
@@ -120,25 +110,20 @@ export const postTodayClass: EventBridgeHandler<any, any, any> = async () => {
 
     await browser.close();
 
-    const topic = createKafkaConnection();
+    const topic = createProvider();
 
     await topic.connect();
 
-    await topic.send({
-      topic: "notification.classroom-today",
-      messages: [
-        {
-          value: JSON.stringify({
-            firstClass: classes[0],
-            secondClass: classes[1],
-            period: new Date().toLocaleDateString("pt-BR"),
-            matricula: process.env.PORTAL_USER_LOGIN,
-          }),
-        },
-      ],
-    });
-
-    await topic.disconnect();
+    await topic.set(
+      "classes-topics",
+      JSON.stringify({
+        firstClass: classes[0],
+        secondClass: classes[1],
+        period: new Date().toLocaleDateString("pt-BR"),
+        matricula: process.env.PORTAL_USER_LOGIN,
+        sent: false,
+      })
+    );
 
     return formatJSONResponse({
       firstClass: classes[0],
